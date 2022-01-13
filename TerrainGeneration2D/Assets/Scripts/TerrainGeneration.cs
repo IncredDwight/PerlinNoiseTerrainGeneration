@@ -6,7 +6,10 @@ using UnityEngine.SceneManagement;
 public class TerrainGeneration : MonoBehaviour
 {
     [SerializeField]
-    private List<GameObject> _tiles;
+    private List<GameObject> _tilesPrefab;
+    [SerializeField]
+    private List<Color> _colors;
+    private GameObject[,] _tiles;
 
     [SerializeField] private int width = 256;
     [SerializeField] private int height = 256;
@@ -15,26 +18,37 @@ public class TerrainGeneration : MonoBehaviour
 
     private void Start()
     {
+        _tiles = new GameObject[width, height];
+
         Generate();
+        UpdateTerrain(_tiles);
     }
 
     // Update is called once per frame
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.E))
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        UpdateTerrain(_tiles);
     }
 
     private void Generate()
     {
-        offset.x = Random.Range(-100, 100);
-        offset.y = Random.Range(-100, 100);
-
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                Instantiate(_tiles[GetTilesId(x, y)], new Vector2(x, y), Quaternion.identity);
+                _tiles[x, y] = Instantiate(_tilesPrefab[0], new Vector2(x, y), Quaternion.identity);
+            }
+        }
+    }
+
+    private void UpdateTerrain(GameObject[,] _tiles)
+    {
+        if (_tiles != null)
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                _tiles[x, y].GetComponent<SpriteRenderer>().color = _colors[GetTilesId(x, y)];
             }
         }
     }
@@ -45,17 +59,23 @@ public class TerrainGeneration : MonoBehaviour
         float xCoord = (float)x / width * scale + offset.x;
         float yCoord = (float)y / height * scale + offset.y;
 
-        float perlinNoise = Mathf.PerlinNoise(xCoord, yCoord);
+        float perlinNoise = Mathf.Clamp(Mathf.PerlinNoise(xCoord, yCoord), 0, 1);
 
-        int finalNoise; //= (perlinNoise != 1) ? Mathf.FloorToInt(perlinNoise * _tiles.Count) : _tiles.Count - 1;
-        if (perlinNoise < 0.3f)
+        int finalNoise;
+        if (perlinNoise < 0.1f)
             finalNoise = 0;
-        else if (perlinNoise < 0.5f)
+        else if (perlinNoise < 0.2f)
             finalNoise = 1;
-        else if (perlinNoise < 0.7f)
+        else if (perlinNoise < 0.3f)
             finalNoise = 2;
-        else
+        else if (perlinNoise < 0.5f)
             finalNoise = 3;
+        else if (perlinNoise < 0.6f)
+            finalNoise = 4;
+        else if (perlinNoise < 0.8f)
+            finalNoise = 5;
+        else
+            finalNoise = 6;
 
         return finalNoise;
     }
